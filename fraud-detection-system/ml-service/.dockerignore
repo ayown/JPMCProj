@@ -1,0 +1,13 @@
+.git
+.env
+venv/
+__pycache__/
+*.pyc
+app/__pycache__/
+tests/
+data/
+models/
+requirements.txt.lock
+README*
+LICENSE*
+Dockerfile*

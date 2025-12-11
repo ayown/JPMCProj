@@ -1,0 +1,11 @@
+.git
+.env
+bin/
+coverage/
+tests/
+testsprite_tests/
+**/*.test
+**/*.md
+Dockerfile*
+README*
+LICENSE*

@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "fraud-detection-postgres": {
+      "Name": "Fraud Detection Postgres",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "frauddetection_db",
+      "Username": "frauddetection",
+      "SSHTunnel": false,
+      "SSLMode": "prefer"
+    }
+  }
+}

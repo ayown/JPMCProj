@@ -48,12 +48,20 @@ func ValidatePassword(password string) bool {
 
 // ExtractURLs extracts all URLs from text
 func ExtractURLs(text string) []string {
-	return urlRegex.FindAllString(text, -1)
+	urls := urlRegex.FindAllString(text, -1)
+	if urls == nil {
+		return []string{}
+	}
+	return urls
 }
 
 // ExtractPhoneNumbers extracts phone numbers from text
 func ExtractPhoneNumbers(text string) []string {
-	return phoneRegex.FindAllString(text, -1)
+	phones := phoneRegex.FindAllString(text, -1)
+	if phones == nil {
+		return []string{}
+	}
+	return phones
 }
 
 // HasUrgentWords checks if text contains urgent/panic words

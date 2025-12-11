@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/fraud-detection-system/backend/internal/api/handlers"
 	"github.com/fraud-detection-system/backend/internal/api/routes"

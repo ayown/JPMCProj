@@ -1,6 +1,6 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authService } from '@/services/auth';
-import { AuthState, LoginRequest, RegisterRequest, User } from '@/types/auth';
+import { AuthState, LoginRequest, RegisterRequest } from '@/types/auth';
 import toast from 'react-hot-toast';
 
 const initialState: AuthState = {

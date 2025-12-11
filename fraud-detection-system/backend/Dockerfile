@@ -14,6 +14,9 @@ RUN go mod download
 # Copy source code
 COPY . .
 
+# Ensure module dependencies are fully resolved
+RUN go mod tidy && go mod download
+
 # Build argument for service name
 ARG SERVICE=api-gateway
 
