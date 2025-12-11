@@ -27,6 +27,10 @@ app.add_middleware(
 app.include_router(health_router, tags=["Health"])
 app.include_router(inference_router, tags=["Inference"])
 
+# Import feedback router
+from app.api.routes import feedback_router
+app.include_router(feedback_router, tags=["Feedback"])
+
 
 @app.on_event("startup")
 async def startup_event():
