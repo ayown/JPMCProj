@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "health_status_endpoint_verification",
+    "description": "Verify the /health GET endpoint returns a 200 OK status indicating the service is live and operational."
+  },
+  {
+    "id": "TC002",
+    "title": "readiness_status_endpoint_verification",
+    "description": "Verify the /ready GET endpoint returns a 200 Ready status indicating the service is ready to accept requests."
+  },
+  {
+    "id": "TC003",
+    "title": "user_registration_endpoint_validation",
+    "description": "Test the /api/v1/auth/register POST endpoint for successful user registration with valid data and proper handling of invalid input resulting in 400 Bad Request."
+  },
+  {
+    "id": "TC004",
+    "title": "user_login_endpoint_authentication",
+    "description": "Test the /api/v1/auth/login POST endpoint for successful user login with valid credentials and proper handling of unauthorized access with 401 status."
+  },
+  {
+    "id": "TC005",
+    "title": "token_refresh_endpoint_functionality",
+    "description": "Verify the /api/v1/auth/refresh POST endpoint correctly refreshes JWT tokens and handles unauthorized requests appropriately."
+  },
+  {
+    "id": "TC006",
+    "title": "user_profile_access_with_authentication",
+    "description": "Test the /api/v1/profile GET endpoint to ensure it returns user profile data when accessed with valid JWT token and returns 401 Unauthorized otherwise."
+  },
+  {
+    "id": "TC007",
+    "title": "message_verification_endpoint_functionality",
+    "description": "Test the /api/v1/verify POST endpoint to verify message fraud detection functionality, including response with fraud probability and handling of rate limiting with 429 status."
+  },
+  {
+    "id": "TC008",
+    "title": "verification_history_access_with_authentication",
+    "description": "Test the /api/v1/verify/history GET endpoint to ensure it returns verification history data when accessed with valid JWT token and handles unauthorized access with 401 status."
+  },
+  {
+    "id": "TC009",
+    "title": "report_creation_and_listing_with_authentication",
+    "description": "Test the /api/v1/reports POST endpoint for creating reports with valid authentication and the GET endpoint for listing reports, ensuring unauthorized access is handled with 401 status."
+  },
+  {
+    "id": "TC010",
+    "title": "ml_prediction_endpoint_accuracy_and_performance",
+    "description": "Test the /api/v1/predict POST endpoint to verify the model inference service returns accurate fraud detection predictions within the required latency constraints."
+  }
+]

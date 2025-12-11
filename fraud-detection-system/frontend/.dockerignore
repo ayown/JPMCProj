@@ -1,0 +1,10 @@
+.git
+.env*
+node_modules/
+dist/
+coverage/
+tests/
+testsprite_tests/
+README*
+LICENSE*
+Dockerfile*
