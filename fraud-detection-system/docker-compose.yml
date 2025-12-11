@@ -1,0 +1,280 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: fraud-detection-postgres
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:-frauddetection}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-frauddetection_password}
+      POSTGRES_DB: ${DATABASE_NAME:-frauddetection_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+      - ./database/seeds:/docker-entrypoint-initdb.d/seeds
+    networks:
+      - fraud-detection-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U frauddetection"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: fraud-detection-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - fraud-detection-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Zookeeper (required for Kafka)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: fraud-detection-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - fraud-detection-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kafka Message Queue
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: fraud-detection-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+    networks:
+      - fraud-detection-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # ML Service (Python/FastAPI)
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: fraud-detection-ml-service
+    environment:
+      - ML_SERVICE_PORT=${ML_SERVICE_PORT:-8000}
+      - ML_SERVICE_HOST=${ML_SERVICE_HOST:-0.0.0.0}
+      - MODEL_PATH=${MODEL_PATH:-/app/models}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models
+      - ./ml-service/data:/app/data
+    networks:
+      - fraud-detection-network
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API Gateway (Go)
+  api-gateway:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: api-gateway
+    container_name: fraud-detection-api-gateway
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      - API_GATEWAY_PORT=${API_GATEWAY_PORT:-8080}
+      - DATABASE_HOST=${DATABASE_HOST:-postgres}
+      - DATABASE_PORT=${DATABASE_PORT:-5432}
+      - DATABASE_USER=${DATABASE_USER:-frauddetection}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-frauddetection_password}
+      - DATABASE_NAME=${DATABASE_NAME:-frauddetection_db}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - KAFKA_BROKERS=${KAFKA_BROKERS:-kafka:9092}
+      - ML_SERVICE_URL=${ML_SERVICE_URL:-http://ml-service:8000}
+      - JWT_SECRET=${JWT_SECRET}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    ports:
+      - "8080:8080"
+    networks:
+      - fraud-detection-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      ml-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Auth Service (Go)
+  auth-service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: auth-service
+    container_name: fraud-detection-auth-service
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      - AUTH_SERVICE_PORT=${AUTH_SERVICE_PORT:-8081}
+      - DATABASE_HOST=${DATABASE_HOST:-postgres}
+      - DATABASE_PORT=${DATABASE_PORT:-5432}
+      - DATABASE_USER=${DATABASE_USER:-frauddetection}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-frauddetection_password}
+      - DATABASE_NAME=${DATABASE_NAME:-frauddetection_db}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRY=${JWT_EXPIRY:-24h}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    ports:
+      - "8081:8081"
+    networks:
+      - fraud-detection-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Verification Service (Go)
+  verification-service:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: verification-service
+    container_name: fraud-detection-verification-service
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      - VERIFICATION_SERVICE_PORT=${VERIFICATION_SERVICE_PORT:-8082}
+      - DATABASE_HOST=${DATABASE_HOST:-postgres}
+      - DATABASE_PORT=${DATABASE_PORT:-5432}
+      - DATABASE_USER=${DATABASE_USER:-frauddetection}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-frauddetection_password}
+      - DATABASE_NAME=${DATABASE_NAME:-frauddetection_db}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - KAFKA_BROKERS=${KAFKA_BROKERS:-kafka:9092}
+      - ML_SERVICE_URL=${ML_SERVICE_URL:-http://ml-service:8000}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    ports:
+      - "8082:8082"
+    networks:
+      - fraud-detection-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      ml-service:
+        condition: service_healthy
+
+  # Worker Service (Go) - Kafka Consumer
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: worker
+    container_name: fraud-detection-worker
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      - WORKER_SERVICE_PORT=${WORKER_SERVICE_PORT:-8083}
+      - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-10}
+      - DATABASE_HOST=${DATABASE_HOST:-postgres}
+      - DATABASE_PORT=${DATABASE_PORT:-5432}
+      - DATABASE_USER=${DATABASE_USER:-frauddetection}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-frauddetection_password}
+      - DATABASE_NAME=${DATABASE_NAME:-frauddetection_db}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - KAFKA_BROKERS=${KAFKA_BROKERS:-kafka:9092}
+      - KAFKA_CONSUMER_GROUP=${KAFKA_CONSUMER_GROUP:-fraud-detection-workers}
+      - ML_SERVICE_URL=${ML_SERVICE_URL:-http://ml-service:8000}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    networks:
+      - fraud-detection-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      ml-service:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+
+  # Nginx Reverse Proxy
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: fraud-detection-nginx
+    ports:
+      - "80:80"
+    networks:
+      - fraud-detection-network
+    depends_on:
+      - api-gateway
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+
+networks:
+  fraud-detection-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+

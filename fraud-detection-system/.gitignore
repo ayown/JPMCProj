@@ -1,0 +1,132 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+vendor/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+*.mo
+*.pot
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# ML Models (use Git LFS or DVC for versioning)
+models/*.bin
+models/*.h5
+models/*.pkl
+models/*.pth
+*.ckpt
+*.safetensors
+
+# Training data
+ml-service/data/raw/*
+ml-service/data/processed/*
+ml-service/data/external/*
+!ml-service/data/raw/.gitkeep
+!ml-service/data/processed/.gitkeep
+!ml-service/data/external/.gitkeep
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*.ipynb
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+database/backups/*
+!database/backups/.gitkeep
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output
+test-results/
+*.cover
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Secrets
+secrets/
+*.pem
+*.key
+*.crt
+
+# Monitoring
+monitoring/logs/*
+!monitoring/logs/.gitkeep
+
+# Build artifacts
+backend/bin/
+frontend/dist/
+frontend/build/
+
